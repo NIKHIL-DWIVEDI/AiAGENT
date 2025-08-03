@@ -1,0 +1,13 @@
+test/*
+sample_docs/*
+uploaded_docs/*
+db/*
+.vscode/*
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+*.env
