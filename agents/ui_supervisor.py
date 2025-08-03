@@ -36,7 +36,7 @@ class UISupervisor:
             
         @tool
         def call_rag_agent(query):
-            """ Call the RAG agent with a query."""
+            """ Call the RAG agent with a query for document related questions."""
             try:
                 response = self.rag_agent.run(query)
                 return response.get('output', str(response))
@@ -45,7 +45,7 @@ class UISupervisor:
             
         @tool
         def save_to_memory(query):
-            """ Save a response to memory."""
+            """ Save a response to long term memory."""
             try:
                 response = self.memory_manager.add_to_long_term_memory(query)
                 return f"Saved to long term memory: {response}"
@@ -54,45 +54,75 @@ class UISupervisor:
             
         @tool
         def retrieve_from_memory(query):
-            """ Retrieve a response from memory."""
+            """ Retrieve a response from long term memory."""
             try:
                 response = self.memory_manager.get_relevant_history(query)
-                if not response:
+                if not response or not response.get("relavant_history"):
                     return "No relevant memory found."
-                return response
+                return f"From my memory: {response.get('relevant_history', 'No information found')}"
             except Exception as e:
                 return f"Error retrieving from memory: {e}"
-        return [call_calculator_agent, call_rag_agent, save_to_memory, retrieve_from_memory]
+            
+        @tool
+        def show_conversation_history(query=None):
+            """ Show the conversation history from short term memory."""
+            try:
+                history = self.memory_manager.get_conversation_history(query)
+                if not history:
+                    return "No conversation history found."
+                return f"Conversation history: {history}"
+            except Exception as e:
+                return f"Error retrieving conversation history: {e}"
+            
+        return [call_calculator_agent, call_rag_agent, save_to_memory, retrieve_from_memory, show_conversation_history]
+    
 
     def _create_agent(self):
         prompt = ChatPromptTemplate.from_messages([
-            ("system", """You are an AI Assistant that answers the query asked by user and if needed you can use the specialized agents to answer the questions.
+            ("system", """You are an AI Assistant that answers user queries directly using your knowledge. Only use specialized tools when absolutely necessary.
 
-             
-IMPORTANT RULES:
-1. For simple conversational responses like "no", "yes", "hello", "thanks" - respond directly, DON'T use any tools
-2. For basic questions that don't require calculation or document lookup - respond directly
-3. ONLY use tools when specifically needed:
-   - Use calculator_agent ONLY for math problems with numbers to calculate
-   - Use rag_agent ONLY for questions about documents or adding documents
-             
-Use CALCULATOR AGENT only for:
+CRITICAL ROUTING RULES:
+1. ANSWER DIRECTLY for these types of questions (DO NOT use any tools):
+   - General knowledge: "What is the capital of India?", "Who is the PM of Italy?", "What is 2+3?"
+   - Greetings: "hello", "how are you", "thanks"
+   - Simple conversations: "yes", "no", basic responses
+   - Explanations: "explain quantum physics", "what is AI?"
+   - Facts about countries, people, science, history, etc.
+
+2. Use CALCULATOR AGENT only for:
    - Complex calculations: "calculate 2847 * 392 + 1583"
-   - Multi-step math problems
-Use RAG AGENT only for:
+   - Multi-step math problems that are difficult to do mentally
+
+3. Use RAG AGENT only for:
    - "Add this document to knowledge base"
-   - "What does the uploaded document say about X"
+   - "What does my uploaded document say about X?"
    - "Search my documents for Y"
+   - "Explain the uploaded document"
+   - "Summarize my document"
    - Questions specifically about USER-UPLOADED documents
 
+4. Use MEMORY tools for:
+   - "What was my first question?" → Use show_conversation_history
+   - "What did I ask before?" → Use show_conversation_history
+   - "Remember that I like pizza" → Use save_to_memory
+   - "What do you remember about me?" → Use retrieve_from_memory
+
+5. Use SHOW_CONVERSATION_HISTORY when:
+   - User asks about previous questions/conversations
+   - "What was my first question?"
+   - "What did we talk about?"
+
+IMPORTANT EXAMPLES:
+- "What is 2+3?" → Answer: "2+3 equals 5."
+- "Who is PM of Italy?" → Answer: "Giorgia Meloni is the current Prime Minister of Italy."
+- "What was my first question?" → Use show_conversation_history tool
+- "Explain the uploaded document" → Use call_rag_agent tool
+
 Instructions:
-- Be helpful and concise
-- Route tasks to the appropriate agent
-- Use memory to provide personalized assistance
-- Always provide clear, actionable responses
-             
-IMPORTANT: While giving reponse to the user use the first person perspective like "I will calculate this for you" and don't give text in response which you thinks on your own but doesn't want user to see.            
-             """),
+- Be helpful and conversational
+- Use first person: "I can help you with that"
+- Answer directly using your built-in knowledge for general questions
+- Only use tools when explicitly needed for the specific use cases above"""),
             MessagesPlaceholder("chat_history", optional=True),
             ("human", "{input}"),
             MessagesPlaceholder("agent_scratchpad"),

@@ -23,7 +23,7 @@ class VectorStore:
         )
 
     ## add documents to vector store
-    def add_documents(self, documents):
+    def add_documents(self, documents,metadata=None):
         """
         Add documents to the vector store.
         

@@ -89,8 +89,13 @@ class MemoryManager:
             print(f"Error retrieving session metadata: {e}")
             return {}
         
-    def _update_session_metadata(self):
+    def _update_session_metadata(self,flag=1):
         """Update the session metadata with the number of messages."""
+        ## resets the session if flag is 0
+        if flag == 0:
+            self.current_session = self._create_session_metadata()
+            return
+
         ## load all the session metadata
         try:
             with open(self.session_file, 'r') as f:
@@ -141,13 +146,37 @@ class MemoryManager:
         self._update_session_metadata()
               
 
-    def get_conversation_history(self,query=None):
-        """Get the conversation history from short term memory."""
+    def get_conversation_history(self, query=None):
+        """Get the conversation history from short term memory in the correct format."""
         try:
-            return self.short_term_memory.load_memory_variables({"prompt":query})
+            # Get the memory variables
+            memory_vars = self.short_term_memory.load_memory_variables({})
+            history = memory_vars.get('history', '')
+            
+            # Convert string history to message format expected by ChatPromptTemplate
+            if history:
+                # Split the history into individual exchanges
+                exchanges = history.split('\n')
+                chat_history = []
+                
+                for exchange in exchanges:
+                    exchange = exchange.strip()
+                    if exchange.startswith('User:'):
+                        content = exchange.replace('User:', '').strip()
+                        if content:
+                            chat_history.append(("human", content))
+                    elif exchange.startswith('AI:'):
+                        content = exchange.replace('AI:', '').strip()
+                        if content:
+                            chat_history.append(("assistant", content))
+                
+                return {"chat_history": chat_history}
+            
+            return {"chat_history": []}
+            
         except Exception as e:
             print(f"Error retrieving conversation history: {e}")
-            return []
+            return {"chat_history": []}
         
     def get_relevant_history(self, query):
         """Get relevant history from long term memory."""
@@ -160,6 +189,15 @@ class MemoryManager:
         else:
             print("Long term memory is not initialized.")
             return {}
+        
+    def clear_conversation_history(self):
+        """Clear the short term memory history."""
+        try:
+            self.short_term_memory.clear()
+            self._update_session_metadata(flag=0)
+        except Exception as e:
+            print(f"Error clearing conversation history: {e}")
+        
             
 
 

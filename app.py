@@ -6,7 +6,7 @@ import time
 
 # Page configuration
 st.set_page_config(
-    page_title="Local AI Agent System",
+    page_title="Personal AI Agent System",
     page_icon="🤖",
     layout="wide"
 )
@@ -20,16 +20,15 @@ if 'messages' not in st.session_state:
     st.session_state.messages = []
 
 # Main title
-st.title("🤖 Local AI Agent System")
-st.markdown("*Powered by Local LLMs with Multi-Agent Architecture*")
+st.title("🤖 Personal AI Agent System")
 
 # Sidebar
 with st.sidebar:
-    st.header("System Info")
+    # st.header("System Info")
     
     # Session info
-    session_info = st.session_state.supervisor.get_session_info()
-    st.metric("Messages in Session", session_info.get('messages', 0))
+    # session_info = st.session_state.supervisor.get_session_info()
+    # st.metric("Messages in Session", session_info.get('messages', 0))
     
     # Capabilities
     st.header("🛠️ Available Agents")
@@ -55,27 +54,22 @@ with st.sidebar:
         with open(file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
         
-        # Add to knowledge base
+        # Add to knowledge base with proper command
         with st.spinner(f"Adding {uploaded_file.name} to knowledge base..."):
-            response = st.session_state.supervisor.run(f"Add the document {file_path} to your knowledge base")
-            st.success(f"✅ Added {uploaded_file.name}")
+            # Use the exact file path that was saved
+            response = st.session_state.supervisor.run(f"Add the document at path {file_path} to your knowledge base")
+            
+            if "Successfully processed" in response or "success" in response.lower():
+                st.success(f"✅ Added {uploaded_file.name}")
+                st.info(f"File saved at: {file_path}")
+            else:
+                st.error(f"❌ Failed to add {uploaded_file.name}")
+                st.error(f"Error: {response}")
+                
+        # Clear the uploader to prevent re-processing
+        st.rerun()
     
-    # Sample queries
-    st.header("💡 Try These Examples")
-    sample_queries = [
-        "What is 25 * 17 + 8?",
-        "Remember that I prefer Python programming",
-        "What do you remember about me?",
-        "Calculate 15% of 250"
-    ]
-    
-    for query in sample_queries:
-        if st.button(query, key=f"sample_{query[:10]}"):
-            st.session_state.messages.append({"role": "user", "content": query})
-            st.rerun()
 
-# Main chat interface
-st.header("💬 Chat with AI Agent")
 
 # Display chat messages
 for message in st.session_state.messages:
@@ -101,8 +95,7 @@ if prompt := st.chat_input("Ask me anything..."):
 # Clear chat button
 if st.sidebar.button("🗑️ Clear Chat"):
     st.session_state.messages = []
+    st.session_state
+    st.session_state.supervisor.memory_manager.clear_conversation_history()
+    st.success("Chat cleared successfully!")
     st.rerun()
-
-# Footer
-st.markdown("---")
-st.markdown("**Local AI Agent System** - Running entirely on your machine with privacy protection")
