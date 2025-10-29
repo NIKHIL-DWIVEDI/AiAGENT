@@ -20,7 +20,7 @@ A sophisticated multi-agent AI system built with LangChain and Ollama that provi
 - [Usage](#-usage)
 - [Project Structure](#-project-structure)
 - [Components](#-components)
-- [Configuration](#️-configuration)
+- [Configuration](#-configuration)
 - [Development Roadmap](#-development-roadmap)
 - [Troubleshooting](#-troubleshooting)
 - [Contributing](#-contributing)
